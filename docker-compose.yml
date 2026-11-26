@@ -1,0 +1,22 @@
+# postgres + sandbox base image build
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: bugscout
+    ports: ["5432:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/init-test-db.sql:/docker-entrypoint-initdb.d/10-test-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test -d bugscout"]
+      interval: 3s
+      retries: 20
+  sandbox-image:
+    build: ./sandbox
+    image: bugscout-sandbox:latest
+    profiles: ["build"]      # `docker compose --profile build build sandbox-image`
+volumes:
+  pgdata:

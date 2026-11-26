@@ -1,0 +1,5 @@
+# Append to ~/.codex/config.toml
+[mcp_servers.bugscout]
+command = "uv"
+args = ["run", "--directory", "/ABSOLUTE/PATH/TO/bugscout", "bugscout"]
+env = { DATABASE_URL = "postgresql://test:test@localhost:5432/bugscout" }

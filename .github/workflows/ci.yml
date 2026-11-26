@@ -1,0 +1,56 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  unit:
+    name: store + server tests (no Docker sandbox)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: bugscout_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U test" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://test:test@localhost:5432/bugscout_test
+      DATABASE_URL: postgresql://test:test@localhost:5432/bugscout_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync
+      - name: tests that need only Postgres
+        run: uv run pytest -q -m "not docker"
+
+  sandbox:
+    name: sandbox + oracles + perf + e2e (Docker)
+    runs-on: ubuntu-latest
+    needs: unit
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: bugscout_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U test" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://test:test@localhost:5432/bugscout_test
+      DATABASE_URL: postgresql://test:test@localhost:5432/bugscout_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync
+      - name: build the sandbox image (cached layers)
+        run: docker build -t bugscout-sandbox:latest sandbox
+      # perf / mutation tests are timing based: run the Docker tests one file at a time, never in parallel
+      - name: docker tests
+        run: uv run pytest -q -m docker -p no:randomly --maxfail=3

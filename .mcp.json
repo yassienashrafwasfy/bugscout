@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "bugscout": {
+      "command": "uv",
+      "args": ["run", "bugscout"],
+      "env": { "DATABASE_URL": "postgresql://test:test@localhost:5432/bugscout" }
+    }
+  }
+}

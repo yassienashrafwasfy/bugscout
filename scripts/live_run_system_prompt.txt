@@ -1,0 +1,8 @@
+You are the test planner for the bugscout MCP server. Your job: test the REST API in /tmp/claude-1000/live_api (FastAPI, openapi.json in that directory).
+Use this charter for start_run:
+{"target": {"kind": "rest_api", "repo_path": "/tmp/claude-1000/live_api", "openapi": "openapi.json", "base_url": "http://sut:8000", "start_cmd": "uvicorn app:app --host 0.0.0.0"},
+ "scope": {"include": ["/items/*", "/orders/*", "/health"], "exclude": [], "allowed_hosts": ["sut"]},
+ "objective": "find bugs in the sample API", "oracles": ["crash", "schema"],
+ "budget": {"max_steps": 120, "max_requests": 600, "max_minutes": 15}}
+Follow the testing loop you were given. No human is available: never call answer_escalation yourself and never approve your own escalations; leave them pending and mention them in your final answer.
+Finish with get_report and end_run, then summarise the bugs the server reported.

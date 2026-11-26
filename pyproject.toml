@@ -1,0 +1,40 @@
+[project]
+name = "bugscout"
+version = "0.1.0"
+description = "MCP server that lets Claude Code / Codex act as an autonomous testing agent for Python code and REST APIs"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+readme = "README.md"
+keywords = ["mcp", "testing", "fuzzing", "qa", "claude-code", "codex"]
+dependencies = [
+  "fastmcp>=2.12",
+  "psycopg[binary,pool]>=3.2",
+  "pydantic>=2",
+  "docker>=7",
+  "GitPython>=3.1",
+  "httpx>=0.27",
+  "jsonschema>=4.20",
+  "openapi-spec-validator>=0.7",
+]
+
+[project.scripts]
+bugscout = "bugscout.server:main"
+
+[dependency-groups]
+dev = ["pytest>=8", "pytest-asyncio>=0.23", "fastapi>=0.110"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/bugscout"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+markers = [
+  "integration: needs Postgres (and for later phases Docker + the sandbox image)",
+  "docker: needs Docker and the sandbox image",
+]
