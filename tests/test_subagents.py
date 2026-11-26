@@ -31,7 +31,7 @@ def _load():
 
 def test_seven_agents_and_every_tool_exists():
     agents = _load()
-    assert len(agents) == 7
+    assert len(agents) == 9
     for name, tools in agents.items():
         assert name.startswith("bugscout-")
         unknown = set(tools) - _registry()
@@ -41,6 +41,18 @@ def test_seven_agents_and_every_tool_exists():
 def test_every_non_lifecycle_tool_is_owned_by_some_agent():
     owned = {t for tools in _load().values() for t in tools}
     assert _registry() - HOST_ONLY - owned == set()
+
+
+def test_every_agent_distrusts_target_content():
+    for f in AGENTS.glob("bugscout-*.md"):
+        assert "untrusted data" in f.read_text(), f.name
+
+
+def test_red_team_cannot_record_or_use_the_static_tools_and_auditor_cannot_probe():
+    a = _load()
+    assert {"probe_injection", "probe_authz", "probe_http_hardening"} <= set(a["bugscout-red-team"])
+    assert not {"probe_injection", "probe_authz", "probe_http_hardening", "http_request"} & set(a["bugscout-security-auditor"])
+    assert not {"record_bug", "confirm_finding", "run_secrets_scan"} & set(a["bugscout-red-team"])
 
 
 def test_only_the_triager_records_bugs_and_nobody_answers_escalations():

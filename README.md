@@ -45,16 +45,17 @@ already tried and loops, or it reports a "bug" that was a flaky test. BugScout i
 * **Dynamic stage:** pytest, Hypothesis property tests, schemathesis, hand-made HTTP requests, user-written rules.
 * **Oracles:** crash / HTTP 5xx, response schema, behaviour diff against the previous git commit, your own invariants.
 * **Quality:** coverage per function and per test, mutation score, flaky-test detection, duplicate-test detection.
+* **Security:** bandit, hard-coded secrets (code and git history), vulnerable dependencies, and active probes for injection, broken authorization and CORS/headers, within scope and budget.
 * **Performance:** empirical time complexity (O(n²) vs the allowed O(n log n)), benchmark regressions between commits, CPU hotspots, memory hogs, API profiling.
 * **Reports** the deduplicated result: bugs, static issues, coverage, hotspots, regressions.
 
-42 tools, 7 read-only resources (`run://{id}/…`) and 3 prompts (`testing_loop`, `write_charter`, `triage_bug`).
+47 tools, 7 read-only resources (`run://{id}/…`) and 3 prompts (`testing_loop`, `write_charter`, `triage_bug`).
 
 <!-- AGENTS:START -->
 
 ## Specialized subagents
 
-BugScout ships seven Claude Code subagents in [`.claude/agents/`](.claude/agents). Each owns one phase of the `testing_loop` and only the tools that phase needs. Your main session coordinates them and keeps `start_run`, `end_run` and every human escalation.
+BugScout ships nine Claude Code subagents in [`.claude/agents/`](.claude/agents). Each owns one phase of the `testing_loop` and only the tools that phase needs. Your main session coordinates them and keeps `start_run`, `end_run` and every human escalation.
 
 | Subagent | Role | Main tools |
 |---|---|---|
@@ -64,6 +65,8 @@ BugScout ships seven Claude Code subagents in [`.claude/agents/`](.claude/agents
 | [`bugscout-diff-hunter`](.claude/agents/bugscout-diff-hunter.md) | Behaviour and speed changes against an older git ref | `compare_with_git_version`, `compare_benchmark_with_git_version` |
 | [`bugscout-perf-analyst`](.claude/agents/bugscout-perf-analyst.md) | Time complexity, CPU, memory, API latency | `measure_time_complexity`, `run_benchmark`, `profile_cpu`, `profile_memory`, `profile_api` |
 | [`bugscout-quality-auditor`](.claude/agents/bugscout-quality-auditor.md) | Coverage, mutation score, flaky and duplicate tests | `run_coverage`, `run_mutation`, `check_flaky`, `dedup_tests` |
+| [`bugscout-security-auditor`](.claude/agents/bugscout-security-auditor.md) | Defensive and passive: bandit, secrets in code and git history, vulnerable dependencies | `run_bandit`, `run_secrets_scan`, `run_pip_audit` |
+| [`bugscout-red-team`](.claude/agents/bugscout-red-team.md) | Adversarial: injection, broken authorization and hardening probes against the running API | `probe_injection`, `probe_authz`, `probe_http_hardening`, `http_request` |
 | [`bugscout-triager`](.claude/agents/bugscout-triager.md) | Judges candidates and is the only one that records bugs | `record_bug`, `fingerprint_bug`, `confirm_finding` |
 
 > [!NOTE]
@@ -81,6 +84,7 @@ BugScout ships seven Claude Code subagents in [`.claude/agents/`](.claude/agents
 | Test quality | `run_coverage`, `run_mutation`, `check_flaky`, `dedup_tests` |
 | Performance | `measure_time_complexity`, `run_benchmark`, `compare_benchmark_with_git_version`, `profile_cpu`, `profile_memory`, `profile_api` |
 | Bug reports | `fingerprint_bug`, `record_bug`, `confirm_finding` |
+| Security | `run_secrets_scan`, `run_pip_audit`, `probe_injection`, `probe_authz`, `probe_http_hardening` |
 
 <!-- AGENTS:END -->
 

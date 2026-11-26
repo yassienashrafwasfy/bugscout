@@ -2,7 +2,7 @@
 import pathlib, sys
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 from i18n_strings import LANGS, RTL, S, CHARTER
-from agents_data import AGENTS, GROUPS, L as AL
+from agents_data import AGENTS, GROUPS, L as AL, SEC_BULLET
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 OUT = ROOT / "docs" / "i18n"
@@ -70,7 +70,7 @@ def build(code):
     auto = d["status_auto"].replace("38", "39")
     why_rows = "\n".join(f"| {a} | {b} |" for a, b in d["why"])
     guards_rows = "\n".join(f"| {a} | {b} |" for a, b in d["guards"])
-    what = "\n".join(f"* {x}" for x in d["what"])
+    what = "\n".join(f"* {x}" for x in [*d["what"][:5], SEC_BULLET[code], *d["what"][5:]])
     steps = "\n".join(f"{i}. {x}" for i, x in enumerate(d["how_steps"], 1))
     head = f'<div align="center">\n\n# 🐞 BugScout\n\n**{d["tagline"]}**\n\n{BADGES}\n\n{langbar(code)}\n\n</div>\n'
     body = f"""

@@ -85,6 +85,10 @@ def _node_fingerprint_data(node: dict, oracle: str) -> dict:
         t = assets.get_node(str(node["target_asset_id"]))
         target = t["key"] if t else None
     rp = r.get("repro") or {}
+    if oracle == "security":
+        sec = r.get("security") or {}
+        return {"kind": "http", "method": "", "path_template": sec.get("template") or rp.get("path"), "status": "",
+                "error_type": f"sec:{sec.get('class')}:{sec.get('param') or ''}"}
     if rp.get("kind") in ("call", "call_diff"):
         target = rp.get("target") or target
     if oracle in ("http_5xx", "schema") or rp.get("kind") == "http":
@@ -129,6 +133,11 @@ def _http_reproduces(run_id: str, rp: dict, oracle: str, original: dict) -> tupl
             pass
     resp = do_http(run_id, rp["method"], rp["path"], rp.get("headers"), body)
     sc = resp.get("status_code")
+    if oracle == "security":
+        from ..security_checks import eval_expect
+        if not rp.get("expect"):
+            return False, {"error": "a security repro needs an `expect` block (what in the response proves the problem)"}
+        return eval_expect(resp, rp["expect"])
     if oracle == "http_5xx" or rp.get("check") == "not_a_server_error":
         return (sc or 0) >= 500, {"status_code": sc}
     if oracle == "schema" or rp.get("check") in ("response_schema_conformance", "status_code_conformance"):

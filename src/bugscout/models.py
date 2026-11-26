@@ -6,7 +6,8 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field, model_validator
 
 ORACLES = ["crash", "http_5xx", "schema", "diff_git", "rule", "ruff", "mypy", "bandit", "radon",
-           "duplication", "vulture", "mutation", "complexity", "perf_regression", "hotspot", "memory"]
+           "duplication", "vulture", "mutation", "complexity", "perf_regression", "hotspot", "memory",
+           "security", "secrets", "dependency"]
 NODE_STATUSES = ["frontier", "in_progress", "done", "dead_end", "escalated", "duplicate", "flaky", "confirmed_bug"]
 SEVERITIES = ["low", "medium", "high", "critical"]
 
@@ -67,6 +68,16 @@ class Stuck(BaseModel):
     min_progress: int = 1
 
 
+class Security(BaseModel):
+    """Inputs for the security tools. Everything is optional; probes that need credentials are skipped without them."""
+    auth_header: str = "Authorization"
+    tokens: dict[str, str] = Field(default_factory=dict)      # user name -> full header value, e.g. {"alice": "Bearer alice-token"}
+    owned: dict[str, dict[str, list]] = Field(default_factory=dict)   # user -> {"/users/{user_id}/profile": [1]}: resources that user owns
+    public_paths: list[str] = Field(default_factory=lambda: ["/health", "/docs", "/redoc", "/openapi.json"])
+    osv_lookup: bool = False    # run_pip_audit sends package names+versions to api.osv.dev; off unless the owner opts in
+    max_probe_requests: int = 300
+
+
 class Charter(BaseModel):
     target: Target
     scope: Scope = Field(default_factory=Scope)
@@ -77,6 +88,7 @@ class Charter(BaseModel):
     budget: Budget = Field(default_factory=Budget)
     perf: Perf = Field(default_factory=Perf)
     stuck: Stuck = Field(default_factory=Stuck)
+    security: Security = Field(default_factory=Security)
 
 
 def ok(summary: str, data: Any = None, next_suggestions: list[str] | None = None, status: str = "ok") -> dict:

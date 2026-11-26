@@ -40,14 +40,15 @@
 * **动态阶段：**pytest、Hypothesis 属性测试、schemathesis、手写 HTTP 请求和自定义规则。
 * **判定准则（oracle）：**崩溃 / HTTP 5xx、响应 schema、与上一个 git 提交的行为差异、你自己的不变量。
 * **质量：**按函数和按测试的覆盖率、变异得分、不稳定测试与重复测试检测。
+* **安全：**bandit、代码与 git 历史中的硬编码密钥、存在漏洞的依赖，以及针对注入、授权缺陷和 CORS/响应头的主动探测，均受范围与预算约束。
 * **性能：**经验时间复杂度（O(n²) 对比允许的 O(n log n)）、提交间的性能回归、CPU 热点、内存大户、API 剖析。
 * **报告：**去重后的结果：Bug、静态问题、覆盖率、热点、回归。
 
-42 tools · 7 read-only resources (`run://{id}/…`) · 3 prompts (`testing_loop`, `write_charter`, `triage_bug`)
+47 tools · 7 read-only resources (`run://{id}/…`) · 3 prompts (`testing_loop`, `write_charter`, `triage_bug`)
 
 ## 专业子代理
 
-BugScout 在 [`.claude/agents/`](../../.claude/agents) 中附带七个 Claude Code 子代理。每个子代理负责 `testing_loop` 的一个阶段，只拥有该阶段所需的工具。你的主会话负责协调它们，并保留 `start_run`、`end_run` 以及所有需要人工处理的升级。
+BugScout 在 [`.claude/agents/`](../../.claude/agents) 中附带九个 Claude Code 子代理。每个子代理负责 `testing_loop` 的一个阶段，只拥有该阶段所需的工具。你的主会话负责协调它们，并保留 `start_run`、`end_run` 以及所有需要人工处理的升级。
 
 | 子代理 | 职责 | 主要工具 |
 |---|---|---|
@@ -57,6 +58,8 @@ BugScout 在 [`.claude/agents/`](../../.claude/agents) 中附带七个 Claude Co
 | [`bugscout-diff-hunter`](../../.claude/agents/bugscout-diff-hunter.md) | 相对旧 git 引用的行为与速度变化 | `compare_with_git_version`, `compare_benchmark_with_git_version` |
 | [`bugscout-perf-analyst`](../../.claude/agents/bugscout-perf-analyst.md) | 时间复杂度、CPU、内存、API 延迟 | `measure_time_complexity`, `run_benchmark`, `profile_cpu`, `profile_memory`, `profile_api` |
 | [`bugscout-quality-auditor`](../../.claude/agents/bugscout-quality-auditor.md) | 覆盖率、变异得分、不稳定与重复测试 | `run_coverage`, `run_mutation`, `check_flaky`, `dedup_tests` |
+| [`bugscout-security-auditor`](../../.claude/agents/bugscout-security-auditor.md) | 防御性、被动：bandit、代码与 git 历史中的密钥、存在漏洞的依赖 | `run_bandit`, `run_secrets_scan`, `run_pip_audit` |
+| [`bugscout-red-team`](../../.claude/agents/bugscout-red-team.md) | 对抗性：对运行中的 API 进行注入、授权缺陷和加固探测 | `probe_injection`, `probe_authz`, `probe_http_hardening`, `http_request` |
 | [`bugscout-triager`](../../.claude/agents/bugscout-triager.md) | 评判候选项，是唯一可记录 Bug 的角色 | `record_bug`, `fingerprint_bug`, `confirm_finding` |
 
 > [!NOTE]
@@ -74,6 +77,7 @@ BugScout 在 [`.claude/agents/`](../../.claude/agents) 中附带七个 Claude Co
 | 测试质量 | `run_coverage`, `run_mutation`, `check_flaky`, `dedup_tests` |
 | 性能 | `measure_time_complexity`, `run_benchmark`, `compare_benchmark_with_git_version`, `profile_cpu`, `profile_memory`, `profile_api` |
 | Bug 报告 | `fingerprint_bug`, `record_bug`, `confirm_finding` |
+| 安全 | `run_secrets_scan`, `run_pip_audit`, `probe_injection`, `probe_authz`, `probe_http_hardening` |
 
 ## 工作原理
 

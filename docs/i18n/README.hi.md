@@ -40,14 +40,15 @@
 * **गतिशील चरण:** pytest, Hypothesis प्रॉपर्टी टेस्ट, schemathesis, हाथ से बने HTTP अनुरोध और अपने नियम।
 * **ऑरेकल:** क्रैश / HTTP 5xx, रिस्पॉन्स स्कीमा, पिछले git कमिट से व्यवहार का अंतर, आपके अपने इनवेरिएंट।
 * **गुणवत्ता:** हर फ़ंक्शन और हर टेस्ट की कवरेज, म्यूटेशन स्कोर, अस्थिर और दोहराए गए टेस्ट की पहचान।
+* **सुरक्षा:** bandit, कोड और git इतिहास में हार्डकोड गुप्त जानकारी, असुरक्षित निर्भरताएँ, और इंजेक्शन, टूटी प्राधिकरण तथा CORS/हेडर के लिए सक्रिय जाँच, दायरे और बजट के भीतर।
 * **प्रदर्शन:** अनुभवजन्य समय-जटिलता (अनुमत O(n log n) के मुक़ाबले O(n²)), कमिट के बीच गिरावट, CPU हॉटस्पॉट, मेमोरी खपत, API प्रोफ़ाइलिंग।
 * **रिपोर्ट** बिना दोहराव के: बग, स्थैतिक समस्याएँ, कवरेज, हॉटस्पॉट, रिग्रेशन।
 
-42 tools · 7 read-only resources (`run://{id}/…`) · 3 prompts (`testing_loop`, `write_charter`, `triage_bug`)
+47 tools · 7 read-only resources (`run://{id}/…`) · 3 prompts (`testing_loop`, `write_charter`, `triage_bug`)
 
 ## विशेषज्ञ सबएजेंट
 
-BugScout [`.claude/agents/`](../../.claude/agents) में Claude Code के सात सबएजेंट के साथ आता है। हर एक `testing_loop` का एक चरण संभालता है और उसके पास सिर्फ़ उसी चरण के टूल होते हैं। आपका मुख्य सत्र इन्हें समन्वित करता है और `start_run`, `end_run` तथा इंसान की ज़रूरत वाले हर एस्केलेशन को अपने पास रखता है।
+BugScout [`.claude/agents/`](../../.claude/agents) में Claude Code के नौ सबएजेंट के साथ आता है। हर एक `testing_loop` का एक चरण संभालता है और उसके पास सिर्फ़ उसी चरण के टूल होते हैं। आपका मुख्य सत्र इन्हें समन्वित करता है और `start_run`, `end_run` तथा इंसान की ज़रूरत वाले हर एस्केलेशन को अपने पास रखता है।
 
 | सबएजेंट | भूमिका | मुख्य टूल |
 |---|---|---|
@@ -57,6 +58,8 @@ BugScout [`.claude/agents/`](../../.claude/agents) में Claude Code के 
 | [`bugscout-diff-hunter`](../../.claude/agents/bugscout-diff-hunter.md) | पुराने git संदर्भ की तुलना में व्यवहार और गति में बदलाव | `compare_with_git_version`, `compare_benchmark_with_git_version` |
 | [`bugscout-perf-analyst`](../../.claude/agents/bugscout-perf-analyst.md) | समय-जटिलता, CPU, मेमोरी, API विलंब | `measure_time_complexity`, `run_benchmark`, `profile_cpu`, `profile_memory`, `profile_api` |
 | [`bugscout-quality-auditor`](../../.claude/agents/bugscout-quality-auditor.md) | कवरेज, म्यूटेशन, अस्थिर और दोहराए गए टेस्ट | `run_coverage`, `run_mutation`, `check_flaky`, `dedup_tests` |
+| [`bugscout-security-auditor`](../../.claude/agents/bugscout-security-auditor.md) | रक्षात्मक और निष्क्रिय: bandit, कोड और git इतिहास में गुप्त कुंजियाँ, असुरक्षित निर्भरताएँ | `run_bandit`, `run_secrets_scan`, `run_pip_audit` |
+| [`bugscout-red-team`](../../.claude/agents/bugscout-red-team.md) | आक्रामक: चल रहे API पर इंजेक्शन, टूटी प्राधिकरण और हार्डनिंग की जाँच | `probe_injection`, `probe_authz`, `probe_http_hardening`, `http_request` |
 | [`bugscout-triager`](../../.claude/agents/bugscout-triager.md) | उम्मीदवारों को परखता है और अकेला बग दर्ज करता है | `record_bug`, `fingerprint_bug`, `confirm_finding` |
 
 > [!NOTE]
@@ -74,6 +77,7 @@ BugScout [`.claude/agents/`](../../.claude/agents) में Claude Code के 
 | टेस्ट की गुणवत्ता | `run_coverage`, `run_mutation`, `check_flaky`, `dedup_tests` |
 | प्रदर्शन | `measure_time_complexity`, `run_benchmark`, `compare_benchmark_with_git_version`, `profile_cpu`, `profile_memory`, `profile_api` |
 | बग रिपोर्ट | `fingerprint_bug`, `record_bug`, `confirm_finding` |
+| सुरक्षा | `run_secrets_scan`, `run_pip_audit`, `probe_injection`, `probe_authz`, `probe_http_hardening` |
 
 ## यह कैसे काम करता है
 

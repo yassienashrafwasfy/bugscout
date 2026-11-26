@@ -40,14 +40,15 @@
 * **Динамический этап:** pytest, property-тесты Hypothesis, schemathesis, ручные HTTP-запросы и собственные правила.
 * **Оракулы:** падение / HTTP 5xx, схема ответа, разница в поведении с предыдущим коммитом, ваши инварианты.
 * **Качество:** покрытие по функциям и по тестам, мутационный балл, поиск нестабильных и дублирующихся тестов.
+* **Безопасность:** bandit, захардкоженные секреты (код и история git), уязвимые зависимости и активные пробы на инъекции, сломанную авторизацию и CORS/заголовки — в пределах области и бюджета.
 * **Производительность:** эмпирическая временная сложность (O(n²) против допустимого O(n log n)), регрессии между коммитами, горячие точки CPU, память, профилирование API.
 * **Отчёт** без дубликатов: баги, статические проблемы, покрытие, горячие точки, регрессии.
 
-42 tools · 7 read-only resources (`run://{id}/…`) · 3 prompts (`testing_loop`, `write_charter`, `triage_bug`)
+47 tools · 7 read-only resources (`run://{id}/…`) · 3 prompts (`testing_loop`, `write_charter`, `triage_bug`)
 
 ## Специализированные субагенты
 
-BugScout поставляет семь субагентов Claude Code в [`.claude/agents/`](../../.claude/agents). Каждый отвечает за одну фазу `testing_loop` и получает только нужные ей инструменты. Ваша основная сессия координирует их и оставляет за собой `start_run`, `end_run` и все эскалации к человеку.
+BugScout поставляет девять субагентов Claude Code в [`.claude/agents/`](../../.claude/agents). Каждый отвечает за одну фазу `testing_loop` и получает только нужные ей инструменты. Ваша основная сессия координирует их и оставляет за собой `start_run`, `end_run` и все эскалации к человеку.
 
 | Субагент | Роль | Основные инструменты |
 |---|---|---|
@@ -57,6 +58,8 @@ BugScout поставляет семь субагентов Claude Code в [`.cl
 | [`bugscout-diff-hunter`](../../.claude/agents/bugscout-diff-hunter.md) | Изменения поведения и скорости относительно старого git-ref | `compare_with_git_version`, `compare_benchmark_with_git_version` |
 | [`bugscout-perf-analyst`](../../.claude/agents/bugscout-perf-analyst.md) | Временная сложность, CPU, память, задержка API | `measure_time_complexity`, `run_benchmark`, `profile_cpu`, `profile_memory`, `profile_api` |
 | [`bugscout-quality-auditor`](../../.claude/agents/bugscout-quality-auditor.md) | Покрытие, мутации, нестабильные и дублирующиеся тесты | `run_coverage`, `run_mutation`, `check_flaky`, `dedup_tests` |
+| [`bugscout-security-auditor`](../../.claude/agents/bugscout-security-auditor.md) | Защитный и пассивный: bandit, секреты в коде и истории git, уязвимые зависимости | `run_bandit`, `run_secrets_scan`, `run_pip_audit` |
+| [`bugscout-red-team`](../../.claude/agents/bugscout-red-team.md) | Атакующий: пробы на инъекции, нарушенную авторизацию и защитные настройки работающего API | `probe_injection`, `probe_authz`, `probe_http_hardening`, `http_request` |
 | [`bugscout-triager`](../../.claude/agents/bugscout-triager.md) | Оценивает кандидатов и единственный записывает баги | `record_bug`, `fingerprint_bug`, `confirm_finding` |
 
 > [!NOTE]
@@ -74,6 +77,7 @@ BugScout поставляет семь субагентов Claude Code в [`.cl
 | Качество тестов | `run_coverage`, `run_mutation`, `check_flaky`, `dedup_tests` |
 | Производительность | `measure_time_complexity`, `run_benchmark`, `compare_benchmark_with_git_version`, `profile_cpu`, `profile_memory`, `profile_api` |
 | Отчёты о багах | `fingerprint_bug`, `record_bug`, `confirm_finding` |
+| Безопасность | `run_secrets_scan`, `run_pip_audit`, `probe_injection`, `probe_authz`, `probe_http_hardening` |
 
 ## Как работает
 

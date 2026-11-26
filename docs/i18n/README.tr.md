@@ -40,14 +40,15 @@ Bir yapay zekâ ajanından «kodumu test et» dediğinizde genelde üç şeyden 
 * **Dinamik aşama:** pytest, Hypothesis özellik testleri, schemathesis, elle HTTP istekleri ve kendi kurallarınız.
 * **Kehanetler (oracle):** çökme / HTTP 5xx, yanıt şeması, önceki git commit'iyle davranış farkı, kendi değişmezleriniz.
 * **Kalite:** fonksiyon ve test başına kapsama, mutasyon skoru, kararsız ve yinelenen testlerin tespiti.
+* **Güvenlik:** bandit, koda gömülü sırlar (kod ve git geçmişi), açıklı bağımlılıklar ve enjeksiyon, bozuk yetkilendirme ve CORS/başlıklar için etkin problar; kapsam ve bütçe içinde.
 * **Performans:** ampirik zaman karmaşıklığı (izin verilen O(n log n)'e karşı O(n²)), commit'ler arası gerilemeler, CPU sıcak noktaları, bellek tüketimi, API profili.
 * **Raporlar:** tekrarsız sonuç: hatalar, statik sorunlar, kapsama, sıcak noktalar, gerilemeler.
 
-42 tools · 7 read-only resources (`run://{id}/…`) · 3 prompts (`testing_loop`, `write_charter`, `triage_bug`)
+47 tools · 7 read-only resources (`run://{id}/…`) · 3 prompts (`testing_loop`, `write_charter`, `triage_bug`)
 
 ## Uzmanlaşmış alt ajanlar
 
-BugScout, [`.claude/agents/`](../../.claude/agents) içinde yedi Claude Code alt ajanıyla gelir. Her biri `testing_loop`'un bir aşamasından sorumludur ve yalnızca o aşamanın araçlarına sahiptir. Ana oturumunuz onları koordine eder; `start_run`, `end_run` ve insan gerektiren her yükseltme ana oturumda kalır.
+BugScout, [`.claude/agents/`](../../.claude/agents) içinde dokuz Claude Code alt ajanıyla gelir. Her biri `testing_loop`'un bir aşamasından sorumludur ve yalnızca o aşamanın araçlarına sahiptir. Ana oturumunuz onları koordine eder; `start_run`, `end_run` ve insan gerektiren her yükseltme ana oturumda kalır.
 
 | Alt ajan | Rol | Ana araçlar |
 |---|---|---|
@@ -57,6 +58,8 @@ BugScout, [`.claude/agents/`](../../.claude/agents) içinde yedi Claude Code alt
 | [`bugscout-diff-hunter`](../../.claude/agents/bugscout-diff-hunter.md) | Eski bir git referansına göre davranış ve hız değişimi | `compare_with_git_version`, `compare_benchmark_with_git_version` |
 | [`bugscout-perf-analyst`](../../.claude/agents/bugscout-perf-analyst.md) | Zaman karmaşıklığı, CPU, bellek, API gecikmesi | `measure_time_complexity`, `run_benchmark`, `profile_cpu`, `profile_memory`, `profile_api` |
 | [`bugscout-quality-auditor`](../../.claude/agents/bugscout-quality-auditor.md) | Kapsama, mutasyon, kararsız ve yinelenen testler | `run_coverage`, `run_mutation`, `check_flaky`, `dedup_tests` |
+| [`bugscout-security-auditor`](../../.claude/agents/bugscout-security-auditor.md) | Savunmacı ve pasif: bandit, koddaki ve git geçmişindeki sırlar, açıklı bağımlılıklar | `run_bandit`, `run_secrets_scan`, `run_pip_audit` |
+| [`bugscout-red-team`](../../.claude/agents/bugscout-red-team.md) | Saldırgan: çalışan API'ye enjeksiyon, bozuk yetkilendirme ve sıkılaştırma probları | `probe_injection`, `probe_authz`, `probe_http_hardening`, `http_request` |
 | [`bugscout-triager`](../../.claude/agents/bugscout-triager.md) | Adayları değerlendirir ve hata kaydeden tek ajandır | `record_bug`, `fingerprint_bug`, `confirm_finding` |
 
 > [!NOTE]
@@ -74,6 +77,7 @@ BugScout, [`.claude/agents/`](../../.claude/agents) içinde yedi Claude Code alt
 | Test kalitesi | `run_coverage`, `run_mutation`, `check_flaky`, `dedup_tests` |
 | Performans | `measure_time_complexity`, `run_benchmark`, `compare_benchmark_with_git_version`, `profile_cpu`, `profile_memory`, `profile_api` |
 | Hata raporları | `fingerprint_bug`, `record_bug`, `confirm_finding` |
+| Güvenlik | `run_secrets_scan`, `run_pip_audit`, `probe_injection`, `probe_authz`, `probe_http_hardening` |
 
 ## Nasıl çalışır
 

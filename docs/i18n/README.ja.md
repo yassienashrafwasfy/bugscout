@@ -40,14 +40,15 @@ AI エージェントに「私のコードをテストして」と頼むと、�
 * **動的ステージ：**pytest、Hypothesis のプロパティテスト、schemathesis、手動の HTTP リクエスト、独自ルール。
 * **オラクル：**クラッシュ / HTTP 5xx、レスポンススキーマ、直前の git コミットとの挙動差分、あなた自身の不変条件。
 * **品質：**関数別・テスト別カバレッジ、ミューテーションスコア、不安定テストと重複テストの検出。
+* **セキュリティ：**bandit、コードと git 履歴内のハードコードされたシークレット、脆弱な依存関係、インジェクション・認可不備・CORS／ヘッダーに対する能動的プローブ（スコープと予算の範囲内）。
 * **パフォーマンス：**経験的な時間計算量（許容 O(n log n) に対する O(n²)）、コミット間の性能劣化、CPU ホットスポット、メモリ消費、API プロファイル。
 * **レポート：**重複を除いた結果（バグ、静的な問題、カバレッジ、ホットスポット、リグレッション）。
 
-42 tools · 7 read-only resources (`run://{id}/…`) · 3 prompts (`testing_loop`, `write_charter`, `triage_bug`)
+47 tools · 7 read-only resources (`run://{id}/…`) · 3 prompts (`testing_loop`, `write_charter`, `triage_bug`)
 
 ## 専門サブエージェント
 
-BugScout は [`.claude/agents/`](../../.claude/agents) に Claude Code 用のサブエージェントを 7 つ同梱しています。それぞれが `testing_loop` の 1 フェーズを担当し、そのフェーズに必要なツールだけを持ちます。メインセッションが調整役となり、`start_run`、`end_run`、人手が必要なエスカレーションはすべてメインが保持します。
+BugScout は [`.claude/agents/`](../../.claude/agents) に Claude Code 用のサブエージェントを 9 つ同梱しています。それぞれが `testing_loop` の 1 フェーズを担当し、そのフェーズに必要なツールだけを持ちます。メインセッションが調整役となり、`start_run`、`end_run`、人手が必要なエスカレーションはすべてメインが保持します。
 
 | サブエージェント | 役割 | 主なツール |
 |---|---|---|
@@ -57,6 +58,8 @@ BugScout は [`.claude/agents/`](../../.claude/agents) に Claude Code 用のサ
 | [`bugscout-diff-hunter`](../../.claude/agents/bugscout-diff-hunter.md) | 古い git 参照との挙動・速度の変化 | `compare_with_git_version`, `compare_benchmark_with_git_version` |
 | [`bugscout-perf-analyst`](../../.claude/agents/bugscout-perf-analyst.md) | 時間計算量、CPU、メモリ、API レイテンシ | `measure_time_complexity`, `run_benchmark`, `profile_cpu`, `profile_memory`, `profile_api` |
 | [`bugscout-quality-auditor`](../../.claude/agents/bugscout-quality-auditor.md) | カバレッジ、ミューテーション、不安定・重複テスト | `run_coverage`, `run_mutation`, `check_flaky`, `dedup_tests` |
+| [`bugscout-security-auditor`](../../.claude/agents/bugscout-security-auditor.md) | 防御的・受動的：bandit、コードと git 履歴内のシークレット、脆弱な依存関係 | `run_bandit`, `run_secrets_scan`, `run_pip_audit` |
+| [`bugscout-red-team`](../../.claude/agents/bugscout-red-team.md) | 攻撃的：稼働中の API に対するインジェクション・認可不備・堅牢化のプローブ | `probe_injection`, `probe_authz`, `probe_http_hardening`, `http_request` |
 | [`bugscout-triager`](../../.claude/agents/bugscout-triager.md) | 候補を判定し、バグを記録できる唯一の役 | `record_bug`, `fingerprint_bug`, `confirm_finding` |
 
 > [!NOTE]
@@ -74,6 +77,7 @@ BugScout は [`.claude/agents/`](../../.claude/agents) に Claude Code 用のサ
 | テスト品質 | `run_coverage`, `run_mutation`, `check_flaky`, `dedup_tests` |
 | パフォーマンス | `measure_time_complexity`, `run_benchmark`, `compare_benchmark_with_git_version`, `profile_cpu`, `profile_memory`, `profile_api` |
 | バグレポート | `fingerprint_bug`, `record_bug`, `confirm_finding` |
+| セキュリティ | `run_secrets_scan`, `run_pip_audit`, `probe_injection`, `probe_authz`, `probe_http_hardening` |
 
 ## 仕組み
 

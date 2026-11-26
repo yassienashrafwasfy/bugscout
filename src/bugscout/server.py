@@ -7,7 +7,7 @@ from fastmcp import FastMCP
 
 from . import runtime
 
-TOOL_MODULES = ["run_control", "map", "static", "run", "check", "quality", "perf", "graph", "report"]   # extended phase by phase
+TOOL_MODULES = ["run_control", "map", "static", "run", "check", "quality", "perf", "graph", "report", "security"]   # extended phase by phase
 
 
 def build_server() -> FastMCP:

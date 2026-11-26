@@ -68,3 +68,19 @@ def lib_charter(repo, **over):
 def _provision_for_docker_tests(request, monkeypatch):
     """Store-only tests skip container creation; tests marked `docker` provision real sandboxes."""
     monkeypatch.setattr(config, "PROVISION", request.node.get_closest_marker("docker") is not None)
+
+
+@pytest.fixture(scope="session")
+def fx_vuln(tmp_path_factory):
+    return str(build_fixture.build("sample_vuln_api", tmp_path_factory.mktemp("fx") / "sample_vuln_api"))
+
+
+def vuln_charter(repo, **over):
+    c = {"target": {"kind": "rest_api", "repo_path": repo, "openapi": "openapi.json", "base_url": "http://sut:8000",
+                    "start_cmd": "uvicorn app:app --host 0.0.0.0"},
+         "scope": {"include": ["/*"], "exclude": [], "allowed_hosts": ["sut"]}, "oracles": ["crash", "schema"],
+         "budget": {"max_steps": 400, "max_requests": 2000, "max_minutes": 60},
+         "security": {"tokens": {"alice": "Bearer alice-token", "bob": "Bearer bob-token"},
+                      "owned": {"alice": {"/users/{user_id}/profile": [1]}, "bob": {"/users/{user_id}/profile": [2]}}}}
+    c.update(over)
+    return c

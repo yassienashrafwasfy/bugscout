@@ -38,11 +38,11 @@ def build(name: str, dest: str | Path | None = None) -> Path:
     _git(dest, "init", "-q", "-b", "main")
     shutil.copytree(src / "current", dest, dirs_exist_ok=True)
     shutil.copytree(src / "v1_overrides", dest, dirs_exist_ok=True)   # previous version
-    if name == "sample_api":
+    if name in ("sample_api", "sample_vuln_api"):
         _write_openapi(dest)
     _git(dest, "add", "-A"); _git(dest, "commit", "-qm", "v1: previous version")
     shutil.copytree(src / "current", dest, dirs_exist_ok=True)         # latest version
-    if name == "sample_api":
+    if name in ("sample_api", "sample_vuln_api"):
         _write_openapi(dest)
     (dest / "CHANGELOG.md").write_text("v2: latest changes (contains planted regressions)\n")
     _git(dest, "add", "-A"); _git(dest, "commit", "-qm", "v2: latest version")

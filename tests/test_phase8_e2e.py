@@ -42,7 +42,7 @@ async def test_server_surface_over_stdio():
             assert tool_name in loop
         # every tool the prompt tells the host to call exists
         import re
-        mentioned = set(re.findall(r"`([a-z_]+)`", loop)) - {"escalation_required", "flaky"}
+        mentioned = set(re.findall(r"`([a-z_]+)`", loop)) - {"escalation_required", "flaky", "security"}   # security is an oracle name
         assert mentioned <= tools | {"run_id"}, mentioned - tools
 
 

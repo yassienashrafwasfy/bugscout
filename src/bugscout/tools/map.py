@@ -246,6 +246,7 @@ def import_openapi(run_id: str) -> dict:
             node = assets.upsert_node(run_id, "endpoint", f"{M} {path}", op.get("summary") or op.get("operationId"), {
                 "method": M, "path": path, "operation_id": op.get("operationId"), "summary": op.get("summary"),
                 "tags": op.get("tags", []), "params": params, "request_body": body, "responses": responses, "in_scope": ins,
+                "security": op.get("security", spec.get("security")) or [],
             }, "import_openapi")
             counts["endpoint"] += 1; counts["out_of_scope"] += (not ins)
             for p in params:

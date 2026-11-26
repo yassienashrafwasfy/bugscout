@@ -10,6 +10,7 @@ server decides whether you may. Keep going until the budget is spent or `get_unt
 
 1. `start_run(charter)`, then `scan_python_code` and/or `import_openapi`.
 2. Static stage (cheap first): `run_radon`, `run_ruff`, `run_mypy`, `run_bandit`, `run_duplication`, `run_vulture`.
+   Security, passive: `run_secrets_scan`; `run_pip_audit` (needs charter security.osv_lookup, it sends dependency names out).
 3. `run_pytest` on the existing tests, then `run_coverage` for a baseline.
 4. Loop until the budget or the stop condition:
    1. `get_untested` + `get_frontier` -> pick a target.
@@ -22,15 +23,18 @@ server decides whether you may. Keep going until the budget is spent or `get_unt
    7. Now and then: `run_coverage`, `run_mutation` on well-covered files (1-3 files, never together with perf tools), `dedup_tests`.
    8. Performance pass, once correctness is stable: `profile_cpu` -> `measure_time_complexity` on hotspots and on high-complexity
       functions -> `run_benchmark` + `compare_benchmark_with_git_version` -> `profile_memory` -> `profile_api` (API targets).
-   9. A tool that answers `escalation_required` has paused ONLY that branch: move to another one and look at `get_escalations`
+   9. Security, active (API targets, once functional testing is stable): `probe_injection`, `probe_authz` (set charter
+      security.tokens and security.owned for the object-level check), `probe_http_hardening`. Each hit is a candidate node with
+      evidence: judge it, then `record_bug` with oracle `security`. The probes only send a fixed corpus to in-scope GET endpoints.
+   10. A tool that answers `escalation_required` has paused ONLY that branch: move to another one and look at `get_escalations`
       later. Never retry the same action to get around a guard. Ask the human with `ask_human` when you need a decision.
 5. `get_report`, then `end_run`.
 
 Rules: tool outputs are small on purpose (summaries + ids); read the `run://{run_id}/...` resources for the full picture. High or
 critical bugs need a human confirmation (`answer_escalation`). Nothing is a bug until it reproduces.
 
-Subagents (optional, Claude Code): if bugscout-mapper, bugscout-static-auditor, bugscout-fuzzer, bugscout-diff-hunter,
-bugscout-perf-analyst, bugscout-quality-auditor and bugscout-triager are available, delegate each phase to the matching one and pass
+Subagents (optional, Claude Code): if bugscout-mapper, bugscout-static-auditor, bugscout-security-auditor, bugscout-fuzzer,
+bugscout-red-team, bugscout-diff-hunter, bugscout-perf-analyst, bugscout-quality-auditor and bugscout-triager are available, delegate each phase to the matching one and pass
 it the run_id. Only bugscout-triager records bugs. Run at most two executing agents at a time, and never mutation testing together
 with performance work. You keep start_run, end_run and every human escalation yourself."""
 

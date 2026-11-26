@@ -41,14 +41,15 @@
 * **المرحلة الديناميكية:** pytest واختبارات Hypothesis وschemathesis وطلبات HTTP يدوية وقواعد يكتبها المستخدم.
 * **المعايير:** الانهيار أو خطأ 5xx، ومطابقة المخطط، والفرق عن الإيداع السابق في git، وثوابتك الخاصة.
 * **الجودة:** التغطية لكل دالة ولكل اختبار، ونتيجة الطفرات، وكشف الاختبارات المتذبذبة والمكررة.
+* **الأمان:** bandit والأسرار المضمّنة (في الشيفرة وسجل git) والاعتماديات المصابة، وفحوص نشطة للحقن وكسر التفويض وCORS والترويسات، ضمن النطاق والميزانية.
 * **الأداء:** التعقيد الزمني التجريبي (O(n²) مقابل O(n log n) المسموح)، وتراجع الأداء بين الإيداعات، ونقاط الاختناق، واستهلاك الذاكرة، وتحليل الواجهات.
 * **يقدّم تقريرًا** منقّحًا من التكرار: الأخطاء والمشكلات الساكنة والتغطية ونقاط الاختناق والتراجعات.
 
-42 أداة، و7 موارد للقراءة فقط (`run://{id}/…`)، و3 توجيهات (`testing_loop` و`write_charter` و`triage_bug`).
+47 أداة، و7 موارد للقراءة فقط (`run://{id}/…`)، و3 توجيهات (`testing_loop` و`write_charter` و`triage_bug`).
 
 ## الوكلاء الفرعيون المتخصصون
 
-يضم BugScout سبعة وكلاء فرعيين لـ Claude Code في [`.claude/agents/`](../../.claude/agents). يتولى كل منهم مرحلة واحدة من `testing_loop` ولا يملك إلا الأدوات التي تحتاجها تلك المرحلة. جلستك الرئيسية تنسّق بينهم وتحتفظ بـ `start_run` و`end_run` وكل تصعيد يحتاج إنسانًا.
+يضم BugScout تسعة وكلاء فرعيين لـ Claude Code في [`.claude/agents/`](../../.claude/agents). يتولى كل منهم مرحلة واحدة من `testing_loop` ولا يملك إلا الأدوات التي تحتاجها تلك المرحلة. جلستك الرئيسية تنسّق بينهم وتحتفظ بـ `start_run` و`end_run` وكل تصعيد يحتاج إنسانًا.
 
 | الوكيل | الدور | أهم الأدوات |
 |---|---|---|
@@ -58,6 +59,8 @@
 | [`bugscout-diff-hunter`](../../.claude/agents/bugscout-diff-hunter.md) | تغيّر السلوك والسرعة مقارنةً بإيداع git أقدم | `compare_with_git_version`, `compare_benchmark_with_git_version` |
 | [`bugscout-perf-analyst`](../../.claude/agents/bugscout-perf-analyst.md) | التعقيد الزمني والمعالج والذاكرة وزمن الاستجابة | `measure_time_complexity`, `run_benchmark`, `profile_cpu`, `profile_memory`, `profile_api` |
 | [`bugscout-quality-auditor`](../../.claude/agents/bugscout-quality-auditor.md) | التغطية ونتيجة الطفرات والاختبارات المتذبذبة والمكررة | `run_coverage`, `run_mutation`, `check_flaky`, `dedup_tests` |
+| [`bugscout-security-auditor`](../../.claude/agents/bugscout-security-auditor.md) | دفاعي وسلبي: bandit والأسرار في الشيفرة وسجل git والاعتماديات المصابة | `run_bandit`, `run_secrets_scan`, `run_pip_audit` |
+| [`bugscout-red-team`](../../.claude/agents/bugscout-red-team.md) | هجومي: فحوص الحقن وكسر التفويض والتحصين على الواجهة العاملة | `probe_injection`, `probe_authz`, `probe_http_hardening`, `http_request` |
 | [`bugscout-triager`](../../.claude/agents/bugscout-triager.md) | يحكم على المرشَّحين وهو الوحيد الذي يسجّل الأخطاء | `record_bug`, `fingerprint_bug`, `confirm_finding` |
 
 > [!NOTE]
@@ -75,6 +78,7 @@
 | جودة الاختبارات | `run_coverage`, `run_mutation`, `check_flaky`, `dedup_tests` |
 | الأداء | `measure_time_complexity`, `run_benchmark`, `compare_benchmark_with_git_version`, `profile_cpu`, `profile_memory`, `profile_api` |
 | تقارير الأخطاء | `fingerprint_bug`, `record_bug`, `confirm_finding` |
+| الأمان | `run_secrets_scan`, `run_pip_audit`, `probe_injection`, `probe_authz`, `probe_http_hardening` |
 
 ## كيف يعمل
 

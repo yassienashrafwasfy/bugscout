@@ -40,14 +40,15 @@ AI 에이전트에게 “내 코드를 테스트해 줘”라고 하면 보통 �
 * **동적 단계:** pytest, Hypothesis 속성 테스트, schemathesis, 수동 HTTP 요청, 사용자 정의 규칙.
 * **오라클:** 크래시 / HTTP 5xx, 응답 스키마, 이전 git 커밋과의 동작 차이, 직접 정한 불변 조건.
 * **품질:** 함수별·테스트별 커버리지, 뮤테이션 점수, 불안정·중복 테스트 감지.
+* **보안:** bandit, 코드와 git 기록 속 하드코딩된 비밀 값, 취약한 의존성, 인젝션·인가 결함·CORS/헤더에 대한 능동 프로브(범위와 예산 안에서).
 * **성능:** 경험적 시간 복잡도(허용된 O(n log n) 대비 O(n²)), 커밋 간 성능 저하, CPU 핫스팟, 메모리 사용, API 프로파일링.
 * **리포트:** 중복을 제거한 결과(버그, 정적 문제, 커버리지, 핫스팟, 회귀).
 
-42 tools · 7 read-only resources (`run://{id}/…`) · 3 prompts (`testing_loop`, `write_charter`, `triage_bug`)
+47 tools · 7 read-only resources (`run://{id}/…`) · 3 prompts (`testing_loop`, `write_charter`, `triage_bug`)
 
 ## 전문 서브에이전트
 
-BugScout는 [`.claude/agents/`](../../.claude/agents)에 Claude Code 서브에이전트 7개를 포함합니다. 각각 `testing_loop`의 한 단계를 맡고 그 단계에 필요한 도구만 가집니다. 메인 세션이 이들을 조율하며 `start_run`, `end_run`, 사람이 필요한 모든 에스컬레이션은 메인이 보유합니다.
+BugScout는 [`.claude/agents/`](../../.claude/agents)에 Claude Code 서브에이전트 9개를 포함합니다. 각각 `testing_loop`의 한 단계를 맡고 그 단계에 필요한 도구만 가집니다. 메인 세션이 이들을 조율하며 `start_run`, `end_run`, 사람이 필요한 모든 에스컬레이션은 메인이 보유합니다.
 
 | 서브에이전트 | 역할 | 주요 도구 |
 |---|---|---|
@@ -57,6 +58,8 @@ BugScout는 [`.claude/agents/`](../../.claude/agents)에 Claude Code 서브에�
 | [`bugscout-diff-hunter`](../../.claude/agents/bugscout-diff-hunter.md) | 이전 git 기준과 비교한 동작·속도 변화 | `compare_with_git_version`, `compare_benchmark_with_git_version` |
 | [`bugscout-perf-analyst`](../../.claude/agents/bugscout-perf-analyst.md) | 시간 복잡도, CPU, 메모리, API 지연 | `measure_time_complexity`, `run_benchmark`, `profile_cpu`, `profile_memory`, `profile_api` |
 | [`bugscout-quality-auditor`](../../.claude/agents/bugscout-quality-auditor.md) | 커버리지, 뮤테이션, 불안정·중복 테스트 | `run_coverage`, `run_mutation`, `check_flaky`, `dedup_tests` |
+| [`bugscout-security-auditor`](../../.claude/agents/bugscout-security-auditor.md) | 방어적·수동적: bandit, 코드와 git 기록 속 비밀 값, 취약한 의존성 | `run_bandit`, `run_secrets_scan`, `run_pip_audit` |
+| [`bugscout-red-team`](../../.claude/agents/bugscout-red-team.md) | 공격적: 실행 중인 API에 대한 인젝션·인가 결함·하드닝 프로브 | `probe_injection`, `probe_authz`, `probe_http_hardening`, `http_request` |
 | [`bugscout-triager`](../../.claude/agents/bugscout-triager.md) | 후보를 판정하며 버그를 기록할 수 있는 유일한 에이전트 | `record_bug`, `fingerprint_bug`, `confirm_finding` |
 
 > [!NOTE]
@@ -74,6 +77,7 @@ BugScout는 [`.claude/agents/`](../../.claude/agents)에 Claude Code 서브에�
 | 테스트 품질 | `run_coverage`, `run_mutation`, `check_flaky`, `dedup_tests` |
 | 성능 | `measure_time_complexity`, `run_benchmark`, `compare_benchmark_with_git_version`, `profile_cpu`, `profile_memory`, `profile_api` |
 | 버그 리포트 | `fingerprint_bug`, `record_bug`, `confirm_finding` |
+| 보안 | `run_secrets_scan`, `run_pip_audit`, `probe_injection`, `probe_authz`, `probe_http_hardening` |
 
 ## 어떻게 동작하는가
 

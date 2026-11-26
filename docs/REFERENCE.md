@@ -68,7 +68,7 @@ REST API targets use `{"kind": "rest_api", "repo_path": ..., "openapi": "openapi
 "start_cmd": "uvicorn app:app --host 0.0.0.0"}` and `scope.allowed_hosts: ["sut"]`. The API runs in its own container on an
 internal network; the tester reaches it as `sut`. Nothing else has network access.
 
-## Tools (42) by stage
+## Tools (47) by stage
 
 | Stage | Tools |
 |---|---|
@@ -81,6 +81,7 @@ internal network; the tester reaches it as `sut`. Nothing else has network acces
 | Quality | `run_coverage` `run_mutation` `check_flaky` `dedup_tests` |
 | Bugs | `fingerprint_bug` `record_bug` |
 | Performance | `measure_time_complexity` `run_benchmark` `compare_benchmark_with_git_version` `profile_cpu` `profile_memory` `profile_api` |
+| Security | `run_secrets_scan` `run_pip_audit` `probe_injection` `probe_authz` `probe_http_hardening` (and `run_bandit` above) |
 | Humans | `ask_human` `get_escalations` `answer_escalation` |
 
 Resources (read-only): `run://{id}/charter|assets|tree|frontier|findings|escalations|report`.
@@ -91,8 +92,8 @@ outputs stay small. Everything is parsed from JSON reports, never scraped from t
 
 ## Subagents (Claude Code)
 
-`.claude/agents/bugscout-*.md` defines seven specialised subagents: `mapper`, `static-auditor`, `fuzzer`, `diff-hunter`, `perf-analyst`,
-`quality-auditor`, `triager`. Each lists only its own `mcp__bugscout__*` tools in its frontmatter. The rules, enforced by
+`.claude/agents/bugscout-*.md` defines nine specialised subagents: `mapper`, `static-auditor`, `security-auditor`, `fuzzer`, `red-team`, `diff-hunter`,
+`perf-analyst`, `quality-auditor`, `triager`. Each lists only its own `mcp__bugscout__*` tools in its frontmatter. The rules, enforced by
 `tests/test_subagents.py`:
 
 * every tool name in an agent file exists on the server, and every tool except `start_run`, `end_run`, `answer_escalation`, `ask_human` is owned by some agent;
@@ -101,6 +102,37 @@ outputs stay small. Everything is parsed from JSON reports, never scraped from t
 
 The `testing_loop` prompt tells the host to delegate when the agents exist and to run at most two executing agents at a time.
 Codex does not read `.claude/agents/`, so for Codex the main session does all phases itself.
+
+## Security tools
+
+| Tool | Kind | What it does |
+|---|---|---|
+| `run_bandit` | passive | static security analysis of the target code |
+| `run_secrets_scan` | passive | private keys, cloud/GitHub/Slack tokens, passwords in code, URLs and recent git history; values are redacted; placeholders ignored |
+| `run_pip_audit` | passive | known vulnerabilities in pinned dependencies via OSV. **Off unless `security.osv_lookup` is true**, because it sends package names and versions to api.osv.dev |
+| `probe_injection` | active | fixed corpus (SQL, path traversal, OS command, reflected XSS) against free-text parameters of in-scope GET endpoints |
+| `probe_authz` | active | declared-protected endpoints that answer without credentials; user B reading user A's resource (needs `security.tokens` and `security.owned`) |
+| `probe_http_hardening` | active | `nosniff`, framing protection on HTML, CORS for an unknown origin (3 requests) |
+
+How the active probes are kept in bounds: GET only; endpoints must be in scope and the host in `allowed_hosts` (the guard refuses otherwise,
+before anything is sent); requests count against `budget.max_requests` and `security.max_probe_requests` (default 300); the payload corpus is
+fixed and versioned in `src/bugscout/security_checks.py`, so a host cannot widen it. A detector needs positive evidence in the response (a
+database error text the control request does not show, `/etc/passwd` content, a computed `9359`, a reflected tag in `text/html`), not just a 500.
+Probes never record bugs: each hit is a candidate node with a replayable repro and an `expect` block. `record_bug(oracle="security")` re-sends
+the request and checks that evidence still holds, so a claim the server does not support is marked flaky, not recorded.
+
+Charter section (all optional):
+
+```json
+"security": {"auth_header": "Authorization",
+             "tokens": {"alice": "Bearer ...", "bob": "Bearer ..."},
+             "owned": {"alice": {"/users/{user_id}/profile": [1]}, "bob": {"/users/{user_id}/profile": [2]}},
+             "public_paths": ["/health", "/docs", "/openapi.json"], "osv_lookup": false, "max_probe_requests": 300}
+```
+
+Limits: these are pattern-based probes, not a penetration test. Business-logic flaws, multi-step authorization problems, authentication
+weaknesses (brute force, session handling) and anything that needs state are out of reach, and only endpoints that *declare* security in
+OpenAPI are checked for missing authentication.
 
 ## How the guards behave
 
@@ -151,6 +183,9 @@ last commit; `perf.find_duplicates` is O(n²); `perf.checksum` is 3x slower in t
 `_crunch`; `perf.build_table` allocates ~600 MB.
 `sample_api` (FastAPI): `GET /items/{id}` returns 500 for negative ids; `GET /orders/{id}` omits the required `total`;
 `DELETE /items/{id}` must escalate.
+`sample_vuln_api` (FastAPI, deliberately vulnerable, never deploy): SQL injection in `/search`, path traversal in `/files`, OS command
+injection in `/ping`, reflected XSS in `/hello`, `/admin/users` declared protected but never checking the token, an IDOR on
+`/users/{id}/profile`, CORS that reflects any origin, a hard-coded `DB_PASSWORD`. `/health`, `/me` and `/echo` are clean on purpose.
 
 ## What was and was not verified
 
@@ -166,6 +201,7 @@ Verified by automated tests (all passing, `uv run pytest tests`, run on one mach
 | 6 | flaky test is marked flaky, not a bug; 20 fuzz failures collapse to 1 finding (`occurrences=20`); identical tests are marked duplicates; coverage per function and per test; mutation score; a failure that does not reproduce is never recorded; a `pytest_diff` bug is replayed before it is recorded |
 | 7 | O(n²) detected vs an allowed O(n log n) and stable across 3 runs; the 3x `checksum` slowdown is a `perf_regression` (and identical code is not); `_crunch` tops the CPU profile; `build_table` exceeds 512 MB; `profile_api` with py-spy |
 | 8 | the server surface over stdio (all tools, resources, prompts); the end-to-end run below |
+| 9 | security: each planted vulnerability in `sample_vuln_api` is found by its probe, the clean endpoints (`/health`, `/me`, `/echo`) are not flagged, `record_bug(oracle="security")` replays the evidence (an unsupported claim is not recorded), probes respect scope, host and request caps, secrets (working tree and history) and OSV (mocked) behave, detectors on canned responses (`tests/test_security_checks.py`) |
 
 **The end-to-end test is scripted, not a live agent.** `tests/test_phase8_e2e.py` starts the real server as a stdio process, with
 real Docker sandboxes, and drives it with `tests/e2e_host.py`, a fixed script that follows the `testing_loop` prompt against
