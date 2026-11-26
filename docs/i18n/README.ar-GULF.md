@@ -46,6 +46,36 @@
 
 42 أداة، و7 موارد للقراءة فقط (`run://{id}/…`)، و3 prompts (`testing_loop` و`write_charter` و`triage_bug`).
 
+## الوكلاء الفرعيون المتخصصون
+
+يجي BugScout مع سبع وكلاء فرعيين لـ Claude Code في [`.claude/agents/`](../../.claude/agents). كل واحد مسؤول عن مرحلة وحدة من `testing_loop` وما عنده إلا الأدوات اللي تحتاجها هالمرحلة. الجلسة الرئيسية تنسّق بينهم وتبقى ماسكة `start_run` و`end_run` وأي تصعيد يحتاج إنسان.
+
+| الوكيل | الدور | أهم الأدوات |
+|---|---|---|
+| [`bugscout-mapper`](../../.claude/agents/bugscout-mapper.md) | يرسم خريطة الهدف ويرتّب وش يتختبر | `scan_python_code`, `import_openapi`, `get_untested`, `get_frontier` |
+| [`bugscout-static-auditor`](../../.claude/agents/bugscout-static-auditor.md) | يشغّل المحللات الساكنة ويخلّي النتايج الحقيقية بس | `run_radon`, `run_ruff`, `run_mypy`, `run_bandit`, `run_duplication`, `run_vulture` |
+| [`bugscout-fuzzer`](../../.claude/agents/bugscout-fuzzer.md) | Hypothesis وschemathesis وطلبات HTTP ويعيد إنتاج الفشل | `run_hypothesis`, `run_schemathesis`, `http_request`, `run_pytest`, `check_crash`, `check_schema`, `check_rule` |
+| [`bugscout-diff-hunter`](../../.claude/agents/bugscout-diff-hunter.md) | تغيّر السلوك والسرعة مقارنة بكوميت أقدم | `compare_with_git_version`, `compare_benchmark_with_git_version` |
+| [`bugscout-perf-analyst`](../../.claude/agents/bugscout-perf-analyst.md) | التعقيد الزمني والمعالج والذاكرة وزمن الاستجابة | `measure_time_complexity`, `run_benchmark`, `profile_cpu`, `profile_memory`, `profile_api` |
+| [`bugscout-quality-auditor`](../../.claude/agents/bugscout-quality-auditor.md) | التغطية ونتيجة الطفرات والاختبارات المتذبذبة والمكررة | `run_coverage`, `run_mutation`, `check_flaky`, `dedup_tests` |
+| [`bugscout-triager`](../../.claude/agents/bugscout-triager.md) | يحكم على المرشّحين وهو الوحيد اللي يسجّل الأخطاء | `record_bug`, `fingerprint_bug`, `confirm_finding` |
+
+> [!NOTE]
+> الـ triager وحده يقدر ينادي `record_bug`؛ وما يقدر أي وكيل فرعي يبدأ تشغيل أو ينهيه أو يرد على تصعيد. شغّل وكيلين منفّذين على الأكثر بنفس الوقت، ولا تجمع اختبار الطفرات مع الأداء. الوكلاء الفرعيين ميزة في Claude Code (وCodex ما يقرأ `.claude/agents/`).
+
+## الأدوات
+
+| المجموعة | الأدوات |
+|---|---|
+| إدارة التشغيل والرسم البياني | `start_run`, `end_run`, `get_status`, `get_report`, `query_graph`, `get_untested`, `get_frontier`, `add_test_idea`, `update_result`, `write_test`, `get_escalations`, `answer_escalation`, `ask_human` |
+| رسم الخريطة | `scan_python_code`, `import_openapi` |
+| التحليل الساكن | `run_radon`, `run_ruff`, `run_mypy`, `run_bandit`, `run_duplication`, `run_vulture` |
+| الاختبار الديناميكي | `run_pytest`, `run_hypothesis`, `run_schemathesis`, `http_request` |
+| المعايير والمقارنات | `check_crash`, `check_schema`, `check_rule`, `compare_with_git_version` |
+| جودة الاختبارات | `run_coverage`, `run_mutation`, `check_flaky`, `dedup_tests` |
+| الأداء | `measure_time_complexity`, `run_benchmark`, `compare_benchmark_with_git_version`, `profile_cpu`, `profile_memory`, `profile_api` |
+| تقارير الأخطاء | `fingerprint_bug`, `record_bug`, `confirm_finding` |
+
 ## كيف يشتغل
 
 ```

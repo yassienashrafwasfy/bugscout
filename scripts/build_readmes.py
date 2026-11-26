@@ -2,6 +2,7 @@
 import pathlib, sys
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 from i18n_strings import LANGS, RTL, S, CHARTER
+from agents_data import AGENTS, GROUPS, L as AL
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 OUT = ROOT / "docs" / "i18n"
@@ -43,6 +44,24 @@ def langbar(cur):
     return " · ".join(parts)
 
 
+def agents_section(code):
+    a = AL[code]
+    roles, groups = a["r"].split("|"), a["g"].split("|")
+    arows = "\n".join(f"| [`{n}`]({'../../' if code != 'en' else ''}.claude/agents/{n}.md) | {roles[i]} | " + ", ".join(f"`{t}`" for t in tl) + " |"
+                      for i, (n, tl) in enumerate(AGENTS))
+    trows = "\n".join(f"| {groups[i]} | " + ", ".join(f"`{t}`" for t in tl) + " |" for i, (_, tl) in enumerate(GROUPS))
+    return (f"## {a['ah']}\n\n{a['ai']}\n\n| {a['cols'][0]} | {a['cols'][1]} | {a['cols'][2]} |\n|---|---|---|\n{arows}\n\n> [!NOTE]\n> {a['note']}\n\n"
+            f"## {a['th']}\n\n| {a['tcols'][0]} | {a['tcols'][1]} |\n|---|---|\n{trows}\n")
+
+
+def patch_english():
+    p = ROOT / "README.md"
+    s = p.read_text(encoding="utf-8")
+    a, b = "<!-- AGENTS:START -->", "<!-- AGENTS:END -->"
+    i, j = s.index(a) + len(a), s.index(b)
+    p.write_text(s[:i] + "\n\n" + agents_section("en") + "\n" + s[j:], encoding="utf-8")
+
+
 def build(code):
     d = S[code]; t = d["t"]
     rtl = code in RTL
@@ -74,6 +93,7 @@ def build(code):
 
 {d['what_tools']}
 
+{agents_section(code)}
 ## {t['how']}
 
 ```
@@ -161,6 +181,7 @@ def main():
             continue
         (OUT / fname).write_text(build(code), encoding="utf-8")
         print("wrote", fname)
+    patch_english()
 
 
 if __name__ == "__main__":

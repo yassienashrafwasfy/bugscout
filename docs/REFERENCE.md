@@ -89,6 +89,19 @@ Prompts: `testing_loop`, `write_charter`, `triage_bug`.
 Every tool answers `{status, summary, data, next_suggestions}`; big payloads are stored as artifacts and replaced by a stub, so
 outputs stay small. Everything is parsed from JSON reports, never scraped from text.
 
+## Subagents (Claude Code)
+
+`.claude/agents/bugscout-*.md` defines seven specialised subagents: `mapper`, `static-auditor`, `fuzzer`, `diff-hunter`, `perf-analyst`,
+`quality-auditor`, `triager`. Each lists only its own `mcp__bugscout__*` tools in its frontmatter. The rules, enforced by
+`tests/test_subagents.py`:
+
+* every tool name in an agent file exists on the server, and every tool except `start_run`, `end_run`, `answer_escalation`, `ask_human` is owned by some agent;
+* only `bugscout-triager` has `record_bug`; no agent can start or end a run or answer an escalation (the host and the human keep those);
+* the README tool and subagent tables are generated from `scripts/agents_data.py` (`python scripts/build_readmes.py`), and the test checks all 16 READMEs list every tool and agent.
+
+The `testing_loop` prompt tells the host to delegate when the agents exist and to run at most two executing agents at a time.
+Codex does not read `.claude/agents/`, so for Codex the main session does all phases itself.
+
 ## How the guards behave
 
 * **Scope**: a target outside `scope.include/exclude` (or a host outside `allowed_hosts`) returns `escalation_required`.

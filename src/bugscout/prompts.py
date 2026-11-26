@@ -27,7 +27,12 @@ server decides whether you may. Keep going until the budget is spent or `get_unt
 5. `get_report`, then `end_run`.
 
 Rules: tool outputs are small on purpose (summaries + ids); read the `run://{run_id}/...` resources for the full picture. High or
-critical bugs need a human confirmation (`answer_escalation`). Nothing is a bug until it reproduces."""
+critical bugs need a human confirmation (`answer_escalation`). Nothing is a bug until it reproduces.
+
+Subagents (optional, Claude Code): if bugscout-mapper, bugscout-static-auditor, bugscout-fuzzer, bugscout-diff-hunter,
+bugscout-perf-analyst, bugscout-quality-auditor and bugscout-triager are available, delegate each phase to the matching one and pass
+it the run_id. Only bugscout-triager records bugs. Run at most two executing agents at a time, and never mutation testing together
+with performance work. You keep start_run, end_run and every human escalation yourself."""
 
 WRITE_CHARTER = """\
 Help me write a charter for bugscout's `start_run`. Ask me (one short question at a time, skip what you can infer from the repo):

@@ -45,6 +45,36 @@
 
 42 tools · 7 read-only resources (`run://{id}/…`) · 3 prompts (`testing_loop`, `write_charter`, `triage_bug`)
 
+## विशेषज्ञ सबएजेंट
+
+BugScout [`.claude/agents/`](../../.claude/agents) में Claude Code के सात सबएजेंट के साथ आता है। हर एक `testing_loop` का एक चरण संभालता है और उसके पास सिर्फ़ उसी चरण के टूल होते हैं। आपका मुख्य सत्र इन्हें समन्वित करता है और `start_run`, `end_run` तथा इंसान की ज़रूरत वाले हर एस्केलेशन को अपने पास रखता है।
+
+| सबएजेंट | भूमिका | मुख्य टूल |
+|---|---|---|
+| [`bugscout-mapper`](../../.claude/agents/bugscout-mapper.md) | लक्ष्य का नक्शा बनाता है और तय करता है क्या टेस्ट हो | `scan_python_code`, `import_openapi`, `get_untested`, `get_frontier` |
+| [`bugscout-static-auditor`](../../.claude/agents/bugscout-static-auditor.md) | स्थैतिक विश्लेषक चलाता है और असली नतीजे रखता है | `run_radon`, `run_ruff`, `run_mypy`, `run_bandit`, `run_duplication`, `run_vulture` |
+| [`bugscout-fuzzer`](../../.claude/agents/bugscout-fuzzer.md) | Hypothesis, schemathesis और HTTP प्रोब; विफलताएँ दोहराता है | `run_hypothesis`, `run_schemathesis`, `http_request`, `run_pytest`, `check_crash`, `check_schema`, `check_rule` |
+| [`bugscout-diff-hunter`](../../.claude/agents/bugscout-diff-hunter.md) | पुराने git संदर्भ की तुलना में व्यवहार और गति में बदलाव | `compare_with_git_version`, `compare_benchmark_with_git_version` |
+| [`bugscout-perf-analyst`](../../.claude/agents/bugscout-perf-analyst.md) | समय-जटिलता, CPU, मेमोरी, API विलंब | `measure_time_complexity`, `run_benchmark`, `profile_cpu`, `profile_memory`, `profile_api` |
+| [`bugscout-quality-auditor`](../../.claude/agents/bugscout-quality-auditor.md) | कवरेज, म्यूटेशन, अस्थिर और दोहराए गए टेस्ट | `run_coverage`, `run_mutation`, `check_flaky`, `dedup_tests` |
+| [`bugscout-triager`](../../.claude/agents/bugscout-triager.md) | उम्मीदवारों को परखता है और अकेला बग दर्ज करता है | `record_bug`, `fingerprint_bug`, `confirm_finding` |
+
+> [!NOTE]
+> सिर्फ़ triager `record_bug` बुला सकता है; कोई सबएजेंट रन शुरू या ख़त्म नहीं कर सकता और न एस्केलेशन का जवाब दे सकता है। एक समय में अधिकतम दो कोड चलाने वाले एजेंट, और म्यूटेशन कभी प्रदर्शन के साथ नहीं। सबएजेंट Claude Code की सुविधा है (Codex `.claude/agents/` को अनदेखा करता है)।
+
+## टूल
+
+| समूह | टूल |
+|---|---|
+| रन नियंत्रण और ग्राफ़ | `start_run`, `end_run`, `get_status`, `get_report`, `query_graph`, `get_untested`, `get_frontier`, `add_test_idea`, `update_result`, `write_test`, `get_escalations`, `answer_escalation`, `ask_human` |
+| मैपिंग | `scan_python_code`, `import_openapi` |
+| स्थैतिक विश्लेषण | `run_radon`, `run_ruff`, `run_mypy`, `run_bandit`, `run_duplication`, `run_vulture` |
+| गतिशील परीक्षण | `run_pytest`, `run_hypothesis`, `run_schemathesis`, `http_request` |
+| ऑरेकल और अंतर | `check_crash`, `check_schema`, `check_rule`, `compare_with_git_version` |
+| टेस्ट की गुणवत्ता | `run_coverage`, `run_mutation`, `check_flaky`, `dedup_tests` |
+| प्रदर्शन | `measure_time_complexity`, `run_benchmark`, `compare_benchmark_with_git_version`, `profile_cpu`, `profile_memory`, `profile_api` |
+| बग रिपोर्ट | `fingerprint_bug`, `record_bug`, `confirm_finding` |
+
 ## यह कैसे काम करता है
 
 ```

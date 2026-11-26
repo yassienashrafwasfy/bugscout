@@ -21,7 +21,7 @@
 
 ## Table of contents
 
-[Why you need this](#why-you-need-this) · [What it does](#what-it-does) · [How it works](#how-it-works) · [Quick start](#quick-start) · [Usage](#usage) · [Guards](#guards) · [What was verified](#what-was-and-was-not-verified) · [Docs](#docs) · [Contributing](#contributing) · [License](#license)
+[Why you need this](#why-you-need-this) · [What it does](#what-it-does) · [Subagents](#specialized-subagents) · [Tools](#tools) · [How it works](#how-it-works) · [Quick start](#quick-start) · [Usage](#usage) · [Guards](#guards) · [What was verified](#what-was-and-was-not-verified) · [Docs](#docs) · [Contributing](#contributing) · [License](#license)
 
 ## Why you need this
 
@@ -49,6 +49,40 @@ already tried and loops, or it reports a "bug" that was a flaky test. BugScout i
 * **Reports** the deduplicated result: bugs, static issues, coverage, hotspots, regressions.
 
 42 tools, 7 read-only resources (`run://{id}/…`) and 3 prompts (`testing_loop`, `write_charter`, `triage_bug`).
+
+<!-- AGENTS:START -->
+
+## Specialized subagents
+
+BugScout ships seven Claude Code subagents in [`.claude/agents/`](.claude/agents). Each owns one phase of the `testing_loop` and only the tools that phase needs. Your main session coordinates them and keeps `start_run`, `end_run` and every human escalation.
+
+| Subagent | Role | Main tools |
+|---|---|---|
+| [`bugscout-mapper`](.claude/agents/bugscout-mapper.md) | Maps the target and ranks what to test | `scan_python_code`, `import_openapi`, `get_untested`, `get_frontier` |
+| [`bugscout-static-auditor`](.claude/agents/bugscout-static-auditor.md) | Runs the static analysers and keeps the real findings | `run_radon`, `run_ruff`, `run_mypy`, `run_bandit`, `run_duplication`, `run_vulture` |
+| [`bugscout-fuzzer`](.claude/agents/bugscout-fuzzer.md) | Hypothesis, schemathesis and HTTP probes; reproduces failures | `run_hypothesis`, `run_schemathesis`, `http_request`, `run_pytest`, `check_crash`, `check_schema`, `check_rule` |
+| [`bugscout-diff-hunter`](.claude/agents/bugscout-diff-hunter.md) | Behaviour and speed changes against an older git ref | `compare_with_git_version`, `compare_benchmark_with_git_version` |
+| [`bugscout-perf-analyst`](.claude/agents/bugscout-perf-analyst.md) | Time complexity, CPU, memory, API latency | `measure_time_complexity`, `run_benchmark`, `profile_cpu`, `profile_memory`, `profile_api` |
+| [`bugscout-quality-auditor`](.claude/agents/bugscout-quality-auditor.md) | Coverage, mutation score, flaky and duplicate tests | `run_coverage`, `run_mutation`, `check_flaky`, `dedup_tests` |
+| [`bugscout-triager`](.claude/agents/bugscout-triager.md) | Judges candidates and is the only one that records bugs | `record_bug`, `fingerprint_bug`, `confirm_finding` |
+
+> [!NOTE]
+> Only the triager can call `record_bug`; no subagent can start or end a run or answer an escalation. Run at most two executing agents at a time and never mutation with performance. Subagents are a Claude Code feature (Codex ignores `.claude/agents/`).
+
+## Tools
+
+| Group | Tools |
+|---|---|
+| Run control & graph | `start_run`, `end_run`, `get_status`, `get_report`, `query_graph`, `get_untested`, `get_frontier`, `add_test_idea`, `update_result`, `write_test`, `get_escalations`, `answer_escalation`, `ask_human` |
+| Mapping | `scan_python_code`, `import_openapi` |
+| Static analysis | `run_radon`, `run_ruff`, `run_mypy`, `run_bandit`, `run_duplication`, `run_vulture` |
+| Dynamic testing | `run_pytest`, `run_hypothesis`, `run_schemathesis`, `http_request` |
+| Oracles & diffs | `check_crash`, `check_schema`, `check_rule`, `compare_with_git_version` |
+| Test quality | `run_coverage`, `run_mutation`, `check_flaky`, `dedup_tests` |
+| Performance | `measure_time_complexity`, `run_benchmark`, `compare_benchmark_with_git_version`, `profile_cpu`, `profile_memory`, `profile_api` |
+| Bug reports | `fingerprint_bug`, `record_bug`, `confirm_finding` |
+
+<!-- AGENTS:END -->
 
 ## How it works
 

@@ -45,6 +45,36 @@ Cuando le pides a un agente de IA que «pruebe mi código», suele pasar una de 
 
 42 tools · 7 read-only resources (`run://{id}/…`) · 3 prompts (`testing_loop`, `write_charter`, `triage_bug`)
 
+## Subagentes especializados
+
+BugScout incluye siete subagentes de Claude Code en [`.claude/agents/`](../../.claude/agents). Cada uno se encarga de una fase del `testing_loop` y solo tiene las herramientas que esa fase necesita. Tu sesión principal los coordina y conserva `start_run`, `end_run` y toda escalada a una persona.
+
+| Subagente | Función | Herramientas principales |
+|---|---|---|
+| [`bugscout-mapper`](../../.claude/agents/bugscout-mapper.md) | Mapea el objetivo y ordena qué probar | `scan_python_code`, `import_openapi`, `get_untested`, `get_frontier` |
+| [`bugscout-static-auditor`](../../.claude/agents/bugscout-static-auditor.md) | Ejecuta los analizadores estáticos y conserva los hallazgos reales | `run_radon`, `run_ruff`, `run_mypy`, `run_bandit`, `run_duplication`, `run_vulture` |
+| [`bugscout-fuzzer`](../../.claude/agents/bugscout-fuzzer.md) | Hypothesis, schemathesis y sondas HTTP; reproduce fallos | `run_hypothesis`, `run_schemathesis`, `http_request`, `run_pytest`, `check_crash`, `check_schema`, `check_rule` |
+| [`bugscout-diff-hunter`](../../.claude/agents/bugscout-diff-hunter.md) | Cambios de comportamiento y velocidad frente a una referencia git | `compare_with_git_version`, `compare_benchmark_with_git_version` |
+| [`bugscout-perf-analyst`](../../.claude/agents/bugscout-perf-analyst.md) | Complejidad temporal, CPU, memoria, latencia de API | `measure_time_complexity`, `run_benchmark`, `profile_cpu`, `profile_memory`, `profile_api` |
+| [`bugscout-quality-auditor`](../../.claude/agents/bugscout-quality-auditor.md) | Cobertura, mutación, pruebas inestables y duplicadas | `run_coverage`, `run_mutation`, `check_flaky`, `dedup_tests` |
+| [`bugscout-triager`](../../.claude/agents/bugscout-triager.md) | Juzga los candidatos y es el único que registra bugs | `record_bug`, `fingerprint_bug`, `confirm_finding` |
+
+> [!NOTE]
+> Solo el triager puede llamar a `record_bug`; ningún subagente puede iniciar ni terminar una ejecución ni responder una escalada. Ejecuta como máximo dos agentes que ejecuten código a la vez y nunca mutación junto con rendimiento. Los subagentes son una función de Claude Code (Codex ignora `.claude/agents/`).
+
+## Herramientas
+
+| Grupo | Herramientas |
+|---|---|
+| Control de ejecución y grafo | `start_run`, `end_run`, `get_status`, `get_report`, `query_graph`, `get_untested`, `get_frontier`, `add_test_idea`, `update_result`, `write_test`, `get_escalations`, `answer_escalation`, `ask_human` |
+| Mapeo | `scan_python_code`, `import_openapi` |
+| Análisis estático | `run_radon`, `run_ruff`, `run_mypy`, `run_bandit`, `run_duplication`, `run_vulture` |
+| Pruebas dinámicas | `run_pytest`, `run_hypothesis`, `run_schemathesis`, `http_request` |
+| Oráculos y diferencias | `check_crash`, `check_schema`, `check_rule`, `compare_with_git_version` |
+| Calidad de las pruebas | `run_coverage`, `run_mutation`, `check_flaky`, `dedup_tests` |
+| Rendimiento | `measure_time_complexity`, `run_benchmark`, `compare_benchmark_with_git_version`, `profile_cpu`, `profile_memory`, `profile_api` |
+| Informes de bugs | `fingerprint_bug`, `record_bug`, `confirm_finding` |
+
 ## Cómo funciona
 
 ```

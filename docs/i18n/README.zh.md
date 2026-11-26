@@ -45,6 +45,36 @@
 
 42 tools · 7 read-only resources (`run://{id}/…`) · 3 prompts (`testing_loop`, `write_charter`, `triage_bug`)
 
+## 专业子代理
+
+BugScout 在 [`.claude/agents/`](../../.claude/agents) 中附带七个 Claude Code 子代理。每个子代理负责 `testing_loop` 的一个阶段，只拥有该阶段所需的工具。你的主会话负责协调它们，并保留 `start_run`、`end_run` 以及所有需要人工处理的升级。
+
+| 子代理 | 职责 | 主要工具 |
+|---|---|---|
+| [`bugscout-mapper`](../../.claude/agents/bugscout-mapper.md) | 映射目标并排序待测内容 | `scan_python_code`, `import_openapi`, `get_untested`, `get_frontier` |
+| [`bugscout-static-auditor`](../../.claude/agents/bugscout-static-auditor.md) | 运行静态分析器，保留真实问题 | `run_radon`, `run_ruff`, `run_mypy`, `run_bandit`, `run_duplication`, `run_vulture` |
+| [`bugscout-fuzzer`](../../.claude/agents/bugscout-fuzzer.md) | Hypothesis、schemathesis 和 HTTP 探测；复现失败 | `run_hypothesis`, `run_schemathesis`, `http_request`, `run_pytest`, `check_crash`, `check_schema`, `check_rule` |
+| [`bugscout-diff-hunter`](../../.claude/agents/bugscout-diff-hunter.md) | 相对旧 git 引用的行为与速度变化 | `compare_with_git_version`, `compare_benchmark_with_git_version` |
+| [`bugscout-perf-analyst`](../../.claude/agents/bugscout-perf-analyst.md) | 时间复杂度、CPU、内存、API 延迟 | `measure_time_complexity`, `run_benchmark`, `profile_cpu`, `profile_memory`, `profile_api` |
+| [`bugscout-quality-auditor`](../../.claude/agents/bugscout-quality-auditor.md) | 覆盖率、变异得分、不稳定与重复测试 | `run_coverage`, `run_mutation`, `check_flaky`, `dedup_tests` |
+| [`bugscout-triager`](../../.claude/agents/bugscout-triager.md) | 评判候选项，是唯一可记录 Bug 的角色 | `record_bug`, `fingerprint_bug`, `confirm_finding` |
+
+> [!NOTE]
+> 只有 triager 可以调用 `record_bug`；任何子代理都不能开始或结束运行，也不能回答升级。同一时间最多运行两个会执行代码的代理，且绝不同时做变异测试和性能测试。子代理是 Claude Code 的功能（Codex 会忽略 `.claude/agents/`）。
+
+## 工具
+
+| 分组 | 工具 |
+|---|---|
+| 运行控制与图 | `start_run`, `end_run`, `get_status`, `get_report`, `query_graph`, `get_untested`, `get_frontier`, `add_test_idea`, `update_result`, `write_test`, `get_escalations`, `answer_escalation`, `ask_human` |
+| 映射 | `scan_python_code`, `import_openapi` |
+| 静态分析 | `run_radon`, `run_ruff`, `run_mypy`, `run_bandit`, `run_duplication`, `run_vulture` |
+| 动态测试 | `run_pytest`, `run_hypothesis`, `run_schemathesis`, `http_request` |
+| 判定与差异 | `check_crash`, `check_schema`, `check_rule`, `compare_with_git_version` |
+| 测试质量 | `run_coverage`, `run_mutation`, `check_flaky`, `dedup_tests` |
+| 性能 | `measure_time_complexity`, `run_benchmark`, `compare_benchmark_with_git_version`, `profile_cpu`, `profile_memory`, `profile_api` |
+| Bug 报告 | `fingerprint_bug`, `record_bug`, `confirm_finding` |
+
 ## 工作原理
 
 ```

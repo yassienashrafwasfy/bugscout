@@ -45,6 +45,36 @@ AI エージェントに「私のコードをテストして」と頼むと、�
 
 42 tools · 7 read-only resources (`run://{id}/…`) · 3 prompts (`testing_loop`, `write_charter`, `triage_bug`)
 
+## 専門サブエージェント
+
+BugScout は [`.claude/agents/`](../../.claude/agents) に Claude Code 用のサブエージェントを 7 つ同梱しています。それぞれが `testing_loop` の 1 フェーズを担当し、そのフェーズに必要なツールだけを持ちます。メインセッションが調整役となり、`start_run`、`end_run`、人手が必要なエスカレーションはすべてメインが保持します。
+
+| サブエージェント | 役割 | 主なツール |
+|---|---|---|
+| [`bugscout-mapper`](../../.claude/agents/bugscout-mapper.md) | 対象をマップし、テストの優先順位を付ける | `scan_python_code`, `import_openapi`, `get_untested`, `get_frontier` |
+| [`bugscout-static-auditor`](../../.claude/agents/bugscout-static-auditor.md) | 静的解析を実行し、本物の指摘だけを残す | `run_radon`, `run_ruff`, `run_mypy`, `run_bandit`, `run_duplication`, `run_vulture` |
+| [`bugscout-fuzzer`](../../.claude/agents/bugscout-fuzzer.md) | Hypothesis・schemathesis・HTTP プローブ。失敗を再現する | `run_hypothesis`, `run_schemathesis`, `http_request`, `run_pytest`, `check_crash`, `check_schema`, `check_rule` |
+| [`bugscout-diff-hunter`](../../.claude/agents/bugscout-diff-hunter.md) | 古い git 参照との挙動・速度の変化 | `compare_with_git_version`, `compare_benchmark_with_git_version` |
+| [`bugscout-perf-analyst`](../../.claude/agents/bugscout-perf-analyst.md) | 時間計算量、CPU、メモリ、API レイテンシ | `measure_time_complexity`, `run_benchmark`, `profile_cpu`, `profile_memory`, `profile_api` |
+| [`bugscout-quality-auditor`](../../.claude/agents/bugscout-quality-auditor.md) | カバレッジ、ミューテーション、不安定・重複テスト | `run_coverage`, `run_mutation`, `check_flaky`, `dedup_tests` |
+| [`bugscout-triager`](../../.claude/agents/bugscout-triager.md) | 候補を判定し、バグを記録できる唯一の役 | `record_bug`, `fingerprint_bug`, `confirm_finding` |
+
+> [!NOTE]
+> `record_bug` を呼べるのは triager だけです。どのサブエージェントも実行の開始・終了やエスカレーションへの回答はできません。コードを実行するエージェントは同時に 2 つまで、ミューテーションとパフォーマンスは同時に走らせないでください。サブエージェントは Claude Code の機能です（Codex は `.claude/agents/` を無視します）。
+
+## ツール
+
+| グループ | ツール |
+|---|---|
+| 実行制御とグラフ | `start_run`, `end_run`, `get_status`, `get_report`, `query_graph`, `get_untested`, `get_frontier`, `add_test_idea`, `update_result`, `write_test`, `get_escalations`, `answer_escalation`, `ask_human` |
+| マッピング | `scan_python_code`, `import_openapi` |
+| 静的解析 | `run_radon`, `run_ruff`, `run_mypy`, `run_bandit`, `run_duplication`, `run_vulture` |
+| 動的テスト | `run_pytest`, `run_hypothesis`, `run_schemathesis`, `http_request` |
+| オラクルと差分 | `check_crash`, `check_schema`, `check_rule`, `compare_with_git_version` |
+| テスト品質 | `run_coverage`, `run_mutation`, `check_flaky`, `dedup_tests` |
+| パフォーマンス | `measure_time_complexity`, `run_benchmark`, `compare_benchmark_with_git_version`, `profile_cpu`, `profile_memory`, `profile_api` |
+| バグレポート | `fingerprint_bug`, `record_bug`, `confirm_finding` |
+
 ## 仕組み
 
 ```

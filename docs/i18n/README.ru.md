@@ -45,6 +45,36 @@
 
 42 tools · 7 read-only resources (`run://{id}/…`) · 3 prompts (`testing_loop`, `write_charter`, `triage_bug`)
 
+## Специализированные субагенты
+
+BugScout поставляет семь субагентов Claude Code в [`.claude/agents/`](../../.claude/agents). Каждый отвечает за одну фазу `testing_loop` и получает только нужные ей инструменты. Ваша основная сессия координирует их и оставляет за собой `start_run`, `end_run` и все эскалации к человеку.
+
+| Субагент | Роль | Основные инструменты |
+|---|---|---|
+| [`bugscout-mapper`](../../.claude/agents/bugscout-mapper.md) | Строит карту цели и ранжирует, что тестировать | `scan_python_code`, `import_openapi`, `get_untested`, `get_frontier` |
+| [`bugscout-static-auditor`](../../.claude/agents/bugscout-static-auditor.md) | Запускает статические анализаторы и оставляет реальные находки | `run_radon`, `run_ruff`, `run_mypy`, `run_bandit`, `run_duplication`, `run_vulture` |
+| [`bugscout-fuzzer`](../../.claude/agents/bugscout-fuzzer.md) | Hypothesis, schemathesis и HTTP-пробы; воспроизводит сбои | `run_hypothesis`, `run_schemathesis`, `http_request`, `run_pytest`, `check_crash`, `check_schema`, `check_rule` |
+| [`bugscout-diff-hunter`](../../.claude/agents/bugscout-diff-hunter.md) | Изменения поведения и скорости относительно старого git-ref | `compare_with_git_version`, `compare_benchmark_with_git_version` |
+| [`bugscout-perf-analyst`](../../.claude/agents/bugscout-perf-analyst.md) | Временная сложность, CPU, память, задержка API | `measure_time_complexity`, `run_benchmark`, `profile_cpu`, `profile_memory`, `profile_api` |
+| [`bugscout-quality-auditor`](../../.claude/agents/bugscout-quality-auditor.md) | Покрытие, мутации, нестабильные и дублирующиеся тесты | `run_coverage`, `run_mutation`, `check_flaky`, `dedup_tests` |
+| [`bugscout-triager`](../../.claude/agents/bugscout-triager.md) | Оценивает кандидатов и единственный записывает баги | `record_bug`, `fingerprint_bug`, `confirm_finding` |
+
+> [!NOTE]
+> Вызывать `record_bug` может только triager; ни один субагент не может начать или завершить запуск и отвечать на эскалации. Одновременно — не больше двух исполняющих агентов, и никогда мутации вместе с производительностью. Субагенты — функция Claude Code (Codex игнорирует `.claude/agents/`).
+
+## Инструменты
+
+| Группа | Инструменты |
+|---|---|
+| Управление запуском и граф | `start_run`, `end_run`, `get_status`, `get_report`, `query_graph`, `get_untested`, `get_frontier`, `add_test_idea`, `update_result`, `write_test`, `get_escalations`, `answer_escalation`, `ask_human` |
+| Картирование | `scan_python_code`, `import_openapi` |
+| Статический анализ | `run_radon`, `run_ruff`, `run_mypy`, `run_bandit`, `run_duplication`, `run_vulture` |
+| Динамическое тестирование | `run_pytest`, `run_hypothesis`, `run_schemathesis`, `http_request` |
+| Оракулы и различия | `check_crash`, `check_schema`, `check_rule`, `compare_with_git_version` |
+| Качество тестов | `run_coverage`, `run_mutation`, `check_flaky`, `dedup_tests` |
+| Производительность | `measure_time_complexity`, `run_benchmark`, `compare_benchmark_with_git_version`, `profile_cpu`, `profile_memory`, `profile_api` |
+| Отчёты о багах | `fingerprint_bug`, `record_bug`, `confirm_finding` |
+
 ## Как работает
 
 ```

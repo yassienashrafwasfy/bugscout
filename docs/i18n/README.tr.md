@@ -45,6 +45,36 @@ Bir yapay zekâ ajanından «kodumu test et» dediğinizde genelde üç şeyden 
 
 42 tools · 7 read-only resources (`run://{id}/…`) · 3 prompts (`testing_loop`, `write_charter`, `triage_bug`)
 
+## Uzmanlaşmış alt ajanlar
+
+BugScout, [`.claude/agents/`](../../.claude/agents) içinde yedi Claude Code alt ajanıyla gelir. Her biri `testing_loop`'un bir aşamasından sorumludur ve yalnızca o aşamanın araçlarına sahiptir. Ana oturumunuz onları koordine eder; `start_run`, `end_run` ve insan gerektiren her yükseltme ana oturumda kalır.
+
+| Alt ajan | Rol | Ana araçlar |
+|---|---|---|
+| [`bugscout-mapper`](../../.claude/agents/bugscout-mapper.md) | Hedefi haritalar, neyin test edileceğini sıralar | `scan_python_code`, `import_openapi`, `get_untested`, `get_frontier` |
+| [`bugscout-static-auditor`](../../.claude/agents/bugscout-static-auditor.md) | Statik analizörleri çalıştırır, gerçek bulguları tutar | `run_radon`, `run_ruff`, `run_mypy`, `run_bandit`, `run_duplication`, `run_vulture` |
+| [`bugscout-fuzzer`](../../.claude/agents/bugscout-fuzzer.md) | Hypothesis, schemathesis ve HTTP probları; hataları yeniden üretir | `run_hypothesis`, `run_schemathesis`, `http_request`, `run_pytest`, `check_crash`, `check_schema`, `check_rule` |
+| [`bugscout-diff-hunter`](../../.claude/agents/bugscout-diff-hunter.md) | Eski bir git referansına göre davranış ve hız değişimi | `compare_with_git_version`, `compare_benchmark_with_git_version` |
+| [`bugscout-perf-analyst`](../../.claude/agents/bugscout-perf-analyst.md) | Zaman karmaşıklığı, CPU, bellek, API gecikmesi | `measure_time_complexity`, `run_benchmark`, `profile_cpu`, `profile_memory`, `profile_api` |
+| [`bugscout-quality-auditor`](../../.claude/agents/bugscout-quality-auditor.md) | Kapsama, mutasyon, kararsız ve yinelenen testler | `run_coverage`, `run_mutation`, `check_flaky`, `dedup_tests` |
+| [`bugscout-triager`](../../.claude/agents/bugscout-triager.md) | Adayları değerlendirir ve hata kaydeden tek ajandır | `record_bug`, `fingerprint_bug`, `confirm_finding` |
+
+> [!NOTE]
+> `record_bug` yalnızca triager tarafından çağrılabilir; hiçbir alt ajan bir çalıştırmayı başlatamaz, bitiremez ya da yükseltmeyi yanıtlayamaz. Aynı anda en fazla iki çalıştırıcı ajan, mutasyon asla performansla birlikte değil. Alt ajanlar bir Claude Code özelliğidir (Codex `.claude/agents/` dizinini yok sayar).
+
+## Araçlar
+
+| Grup | Araçlar |
+|---|---|
+| Çalıştırma kontrolü ve graf | `start_run`, `end_run`, `get_status`, `get_report`, `query_graph`, `get_untested`, `get_frontier`, `add_test_idea`, `update_result`, `write_test`, `get_escalations`, `answer_escalation`, `ask_human` |
+| Haritalama | `scan_python_code`, `import_openapi` |
+| Statik analiz | `run_radon`, `run_ruff`, `run_mypy`, `run_bandit`, `run_duplication`, `run_vulture` |
+| Dinamik test | `run_pytest`, `run_hypothesis`, `run_schemathesis`, `http_request` |
+| Oracle'lar ve farklar | `check_crash`, `check_schema`, `check_rule`, `compare_with_git_version` |
+| Test kalitesi | `run_coverage`, `run_mutation`, `check_flaky`, `dedup_tests` |
+| Performans | `measure_time_complexity`, `run_benchmark`, `compare_benchmark_with_git_version`, `profile_cpu`, `profile_memory`, `profile_api` |
+| Hata raporları | `fingerprint_bug`, `record_bug`, `confirm_finding` |
+
 ## Nasıl çalışır
 
 ```

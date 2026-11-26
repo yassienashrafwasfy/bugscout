@@ -45,6 +45,36 @@ AI 에이전트에게 “내 코드를 테스트해 줘”라고 하면 보통 �
 
 42 tools · 7 read-only resources (`run://{id}/…`) · 3 prompts (`testing_loop`, `write_charter`, `triage_bug`)
 
+## 전문 서브에이전트
+
+BugScout는 [`.claude/agents/`](../../.claude/agents)에 Claude Code 서브에이전트 7개를 포함합니다. 각각 `testing_loop`의 한 단계를 맡고 그 단계에 필요한 도구만 가집니다. 메인 세션이 이들을 조율하며 `start_run`, `end_run`, 사람이 필요한 모든 에스컬레이션은 메인이 보유합니다.
+
+| 서브에이전트 | 역할 | 주요 도구 |
+|---|---|---|
+| [`bugscout-mapper`](../../.claude/agents/bugscout-mapper.md) | 대상을 매핑하고 테스트할 것의 순서를 정함 | `scan_python_code`, `import_openapi`, `get_untested`, `get_frontier` |
+| [`bugscout-static-auditor`](../../.claude/agents/bugscout-static-auditor.md) | 정적 분석기를 실행하고 실제 문제만 남김 | `run_radon`, `run_ruff`, `run_mypy`, `run_bandit`, `run_duplication`, `run_vulture` |
+| [`bugscout-fuzzer`](../../.claude/agents/bugscout-fuzzer.md) | Hypothesis, schemathesis, HTTP 프로브. 실패를 재현 | `run_hypothesis`, `run_schemathesis`, `http_request`, `run_pytest`, `check_crash`, `check_schema`, `check_rule` |
+| [`bugscout-diff-hunter`](../../.claude/agents/bugscout-diff-hunter.md) | 이전 git 기준과 비교한 동작·속도 변화 | `compare_with_git_version`, `compare_benchmark_with_git_version` |
+| [`bugscout-perf-analyst`](../../.claude/agents/bugscout-perf-analyst.md) | 시간 복잡도, CPU, 메모리, API 지연 | `measure_time_complexity`, `run_benchmark`, `profile_cpu`, `profile_memory`, `profile_api` |
+| [`bugscout-quality-auditor`](../../.claude/agents/bugscout-quality-auditor.md) | 커버리지, 뮤테이션, 불안정·중복 테스트 | `run_coverage`, `run_mutation`, `check_flaky`, `dedup_tests` |
+| [`bugscout-triager`](../../.claude/agents/bugscout-triager.md) | 후보를 판정하며 버그를 기록할 수 있는 유일한 에이전트 | `record_bug`, `fingerprint_bug`, `confirm_finding` |
+
+> [!NOTE]
+> `record_bug`는 triager만 호출할 수 있습니다. 어떤 서브에이전트도 실행을 시작·종료하거나 에스컬레이션에 답할 수 없습니다. 코드를 실행하는 에이전트는 동시에 최대 2개, 뮤테이션은 성능 작업과 절대 함께 돌리지 마세요. 서브에이전트는 Claude Code 기능입니다(Codex는 `.claude/agents/`를 무시합니다).
+
+## 도구
+
+| 그룹 | 도구 |
+|---|---|
+| 실행 제어와 그래프 | `start_run`, `end_run`, `get_status`, `get_report`, `query_graph`, `get_untested`, `get_frontier`, `add_test_idea`, `update_result`, `write_test`, `get_escalations`, `answer_escalation`, `ask_human` |
+| 매핑 | `scan_python_code`, `import_openapi` |
+| 정적 분석 | `run_radon`, `run_ruff`, `run_mypy`, `run_bandit`, `run_duplication`, `run_vulture` |
+| 동적 테스트 | `run_pytest`, `run_hypothesis`, `run_schemathesis`, `http_request` |
+| 오라클과 차이 | `check_crash`, `check_schema`, `check_rule`, `compare_with_git_version` |
+| 테스트 품질 | `run_coverage`, `run_mutation`, `check_flaky`, `dedup_tests` |
+| 성능 | `measure_time_complexity`, `run_benchmark`, `compare_benchmark_with_git_version`, `profile_cpu`, `profile_memory`, `profile_api` |
+| 버그 리포트 | `fingerprint_bug`, `record_bug`, `confirm_finding` |
+
 ## 어떻게 동작하는가
 
 ```
